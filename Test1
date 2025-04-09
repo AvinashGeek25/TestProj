@@ -1,0 +1,866 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?include ../Common.wxi ?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:netfx="http://schemas.microsoft.com/wix/NetFxExtension"
+     xmlns:fw="http://schemas.microsoft.com/wix/FirewallExtension">
+
+	<!--When Upgrading, just change the Product Id, increment the Version and change output name in properties-->
+	<Product Id="$(var.PRODUCT_GUID_MSI_64)"
+			 Name="$(var.PRODUCT_APP_NAME)"
+			 Language="1033"
+			 Version="$(var.VERSION)"
+			 Manufacturer="Endor AG Fanatec"
+			 UpgradeCode="6313F4B8-ECEF-4001-BC30-C00B81551CD5">
+		<!--3DD4F1A8-6911-44DB-B60D-B1A6C87414E2-->
+		<!--DO NOT MODIFY! Upgrade Code from the original VS2010 setup-->
+
+		<!--Set all installer info-->
+		<Package Keywords="Installer"
+				 Description="$(var.PRODUCT_DESCRIPTION)"
+				 Manufacturer="Fanatec"
+				 Comments="Fanatec is a brand of Endor AG Germany"
+				 Platform="x64"
+				 InstallerVersion="406"
+				 Languages='1033'
+				 Compressed="yes"
+				 InstallScope="perMachine"/>
+
+		<MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		<MediaTemplate EmbedCab="yes"/>
+		<Property Id='DiskPrompt' Value="Fanatec Driver Installation" />
+		<PropertyRef Id="NETFRAMEWORK40CLIENT"/>
+		<Property Id="REINSTALLMODE" Value="amus" />
+
+		<!--<Property Id="TRAYAPPBUG">
+        <ProductSearch Minimum="0" Maximum="8.46.2" UpgradeCode="{3DD4F1A8-6911-44DB-B60D-B1A6C87414E2}"/>
+    </Property>-->
+
+		<!--NOTE: TrayApp V0.41 in Driver V451 has bug that prevents it being uninstalled-->
+		<Property Id="DRIVERV451TRAYAPPBUG" Secure="yes" />
+		<Upgrade Id="{3DD4F1A8-6911-44DB-B60D-B1A6C87414E2}">
+			<UpgradeVersion
+			Minimum="8.46.2" Maximum="8.46.2"
+			Property="DRIVERV451TRAYAPPBUG"
+			IncludeMinimum="yes" IncludeMaximum="yes" OnlyDetect="yes" />
+		</Upgrade>
+
+		<!--NOTE: Disables the msi checking if device is still in used by various softwares.
+              Disabling device still in use will require a reboot after uninstallation.-->
+		<!--<Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />-->
+
+		<Feature Id="ProductFeature" Title="Fanatec Wheel" Level="1">
+			<!--Reference here all Id from the fragments-->
+			<ComponentGroupRef Id="ProductComponents_Main" />
+			<ComponentGroupRef Id="ProductComponents_Metadata" />
+			<ComponentGroupRef Id="ProductComponents_UWP_IHV" />
+			<ComponentGroupRef Id="ProductComponents_MS_Signed" />
+			<ComponentGroupRef Id="ProductComponents_Firmware" />
+			<ComponentGroupRef Id="ProductComponents_Firmware_Previous_1" />
+			<ComponentGroupRef Id="ProductComponents_Firmware_Previous_2" />
+			<ComponentGroupRef Id="ProductComponents_Firmware_Previous_3" />
+			<ComponentGroupRef Id="ProductComponents_Firmware_Tool_1" />
+			<FeatureGroupRef Id="UI" />
+			<FeatureGroupRef Id="CustomActionDeclarations" />
+			<FeatureGroupRef Id="CustomActionExecutions" />
+			<ComponentRef Id="HKCU_RunAtWindowsStartup"/>
+			<ComponentGroupRef Id="MosquittoComponent"/>
+			<ComponentGroupRef Id="FanatecServiceComponent"/>
+			<!--<ComponentGroupRef Id="GameControlServiceComponent"/>-->
+			<ComponentGroupRef Id="FanatecUIComponent"></ComponentGroupRef>
+			<MergeRef Id="VCRedist"/>
+		</Feature>
+
+		<!--<Condition Message="Please Run as Administrator.">
+			Privileged
+		</Condition>
+
+		<Property Id="MSIUSEREALADMINDETECTION" Value="1" />-->
+
+		<!--Set launch conditions-->
+		<Condition Message="This application is only supported on Windows Vista, Windows 7, and higher.">
+			<![CDATA[Installed OR (VersionNT >= 600)]]>
+		</Condition>
+
+		<Condition Message="Cannot install 64-bit setup on 32-bit machine. Contact your product Vendor for details.">
+			<![CDATA[Installed OR VersionNT]]>
+		</Condition>
+
+		<Condition Message="This application requires .NET Framework 4.0 Client Profile. Please install the .NET Framework then run this installer again.">
+			<![CDATA[Installed OR NETFRAMEWORK40CLIENT]]>
+		</Condition>
+
+		<Condition Message="Fanatec Driver Installer has detected that there are pending system changes that require a reboot. Please reboot the system and rerun the installation.">
+			<![CDATA[Installed OR Not REBOOTREQUIRED]]>
+		</Condition>
+
+		<!--<Condition Message="!(loc.ErrorTrayAppBug)">
+        <![CDATA[Installed OR Not (TRAYAPPV041INSTALLED AND DRIVERV451TRAYAPPBUG)]]>
+    </Condition>-->
+
+	</Product>
+
+
+	<!--Set directory of install folders according to its hierarchy-->
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFiles64Folder">
+				<Directory Id="INSTALLFOLDER" Name="Fanatec">
+					<Directory Id="INSTALLFOLDER_MAIN" Name="Fanatec Wheel">
+						<Directory Id="INSTALLFOLDER_METADATA" Name="metadata"/>
+						<Directory Id="INSTALLFOLDER_UWP_IHV" Name="ihv"/>
+						<Directory Id="INSTALLFOLDER_MS_SIGNED" Name="ms"/>
+						<Directory Id="INSTALLFOLDER_FANATEC_APP" Name="app">
+							<Directory Id="INSTALLFOLDER_APP_PLUGIN" Name="plugin"/>
+						</Directory>
+						<Directory Id="INSTALLFOLDER_PROPERTY_PAGE" Name="ui">
+							<Directory Id="INSTALLFOLDER_PROPERTY_PAGE_TOOL_1" Name="EventViewerScraper"/>
+							<Directory Id="INSTALLFOLDER_PROPERTY_PAGE_EFFECTS" Name="Effects"/>
+						</Directory>
+						<Directory Id="INSTALLFOLDER_FIRMWARE" Name="fw">
+							<Directory Id="INSTALLFOLDER_FIRMWARE_TOOL_1" Name="EventViewerScraper"/>
+							<Directory Id="INSTALLFOLDER_FIRMWARE_PREV" Name="PreviousFirmwares">
+								<Directory Id="INSTALLFOLDER_FIRMWARE_PREV_1" Name="1"/>
+								<Directory Id="INSTALLFOLDER_FIRMWARE_PREV_2" Name="2"/>
+								<Directory Id="INSTALLFOLDER_FIRMWARE_PREV_3" Name="3"/>
+								<!--<Directory Id="INSTALLFOLDER_FIRMWARE_PREV_PEDALS" Name="Pedals"/>-->
+					    </Directory>
+						</Directory>
+          </Directory>
+          <Directory Id="FanatecService" Name="FanatecService"/>
+        <!--<Directory Id="GameControlService" Name="GameControlService"/>-->
+          <Directory Id="FanatecUI" Name="FanatecUI"/>
+        </Directory>
+	  	  <Directory Id="MOSQUITTO" Name="Mosquitto" />
+			</Directory>
+			<Merge Id="VCRedist" SourceFile="..\FWSetupRedistributables\Microsoft_VC140_CRT_x86.msm" DiskId="1" Language="0"/>
+			<Directory Id="DesktopFolder" Name="Desktop" />
+			<Directory Id="SystemFolder" Name="SystemFolder" />
+			<Directory Id="ProgramMenuFolder" Name="ProgramMenuFolder" />
+			<Directory Id="ApplicationProgramsFolder" Name="Fanatec Control Panel"/>
+		</Directory>
+
+		<!-- Add Shortcut on the Start Menu -->
+		<!--<DirectoryRef Id="ApplicationProgramsFolder">
+			<Component Id="ApplicationShortcut" Guid="{D5ECC0FF-6BFE-4638-B4E0-695F834735F2}">
+				<Shortcut Id="ApplicationStartMenuShortcut"
+						  Name="Fanatec Control Panel"
+						  Directory="ProgramMenuFolder"
+						  Description="Shortcut to Fanatec Control Panel"
+						  Target="[#FanatecControlPanel]"
+						  WorkingDirectory="INSTALLFOLDER_PROPERTY_PAGE"/>
+				<RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+				<RegistryValue Root="HKCU" Key="Software\Microsoft\FanatecControlPanel" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+			</Component>
+		</DirectoryRef>-->
+
+		<Property Id="REBOOTREQUIRED">
+			<RegistrySearch Id="RebootRequired"
+							Root="HKU" Key=".DEFAULT\Software\Fanatec MSI"
+							Name="RebootRequired" Type="raw" />
+		</Property>
+	</Fragment>
+
+	<!--Include all the binaries of the Fanatec Wheel Project-->
+	<Fragment>
+		<ComponentGroup Id="MosquittoComponent" Directory="MOSQUITTO">
+			<Component Id="CustomActionLibraryComponent" Guid="{11ABB9BA-889A-48B2-85E5-A555FCC12749}">
+				<File Id="CustomActionLibraryDLL" Source="..\OneFanatecSetupCustomAction\bin\Release\OneFanatecSetupCustomAction.CA.dll" KeyPath="yes" />
+			</Component>
+      
+			<!--<Component Id="MQTT_Component" Guid="{0A82C0C7-0542-4BEA-8345-856722F593F4}">
+				<File Id="MQTT" Name="mosquitto-2.0.18-install-windows-x64.exe" Source="..\OneFanatecSetupCustomAction\Installer\mosquitto-2.0.18-install-windows-x64.exe" KeyPath="yes" Checksum="yes" />
+			</Component>-->
+		</ComponentGroup>
+    
+		<ComponentGroup Id="FanatecServiceComponent" Directory="FanatecService">
+			<Component Id="FanatecService_Component" Guid="{2BDF71DF-F054-4803-AFD5-57B2E0A8A5C8}">
+				<File Id="FanatecService" Name="onefanatec.zip" Source="..\OneFanatecSetupCustomAction\Installer\onefanatec.zip" KeyPath="yes" Checksum="yes" />
+			</Component>
+		</ComponentGroup>
+		
+		<!--<ComponentGroup Id="GameControlServiceComponent" Directory="GameControlService">
+			<Component Id="GameControlService_Component" Guid="{9F57FFFC-8937-4B01-B0F5-06BCB888504B}">
+				<File Id="GameControlService" Name="gamecontrolservice.zip" Source="..\OneFanatecSetupCustomAction\Installer\gamecontrolservice.zip" KeyPath="yes" Checksum="yes" />
+			</Component>
+		</ComponentGroup>-->
+    
+		<ComponentGroup Id="FanatecUIComponent" Directory="FanatecUI">
+			<Component Id="FanatecUI_Component" Guid="{6C6025F1-36AF-49C6-807D-CCBFAD42AF43}">
+				<File Id="FanatecUI" Name="EndorUI.zip" Source="..\OneFanatecSetupCustomAction\Installer\EndorUI.zip" KeyPath="yes" Checksum="yes" />
+			</Component>
+		</ComponentGroup>
+    
+		<ComponentGroup Id="ProductComponents_Main" Directory="INSTALLFOLDER_MAIN">
+
+			<!--NOTE: GUID should be unique for every component-->
+			<Component Id="DIFxAPI_component" Guid="61303A22-93ED-4700-BCBD-BA87F23944D7">
+				<File Id="DIFxAPI" Name="DIFxAPI.dll" Source="..\FWSetupRedistributables\WdkRedistx64\DIFxAPI.dll" />
+			</Component>
+
+			<Component Id="FAWForceFeedbackDrv32_component" Guid="74771C8A-6FDB-44EB-8E21-5FAD610578F3">
+				<File Id="FAWForceFeedbackDrv32" Name="FAWForceFeedbackDrv32.dll" Source="..\FWSetupBinaries\Release\FAWForceFeedbackDrv32.dll" SelfRegCost="1" />
+			</Component>
+
+			<Component Id="FAWForceFeedbackDrv64_component" Guid="DB640FA0-D5BE-462A-9361-F1849D9F5FA2">
+				<File Id="FAWForceFeedbackDrv64" Name="FAWForceFeedbackDrv64.dll" Source="..\FWSetupBinaries\x64\Release\FAWForceFeedbackDrv64.dll" SelfRegCost="1" />
+			</Component>
+
+			<Component Id="FWfilterusb_cat_component" Guid="77721342-D08C-4C31-997B-141D4A072273">
+				<File Id="FWfilterusb_cat" Name="FWfilterusb.cat" Source="..\FWSetupBinaries\SignFolderx64\FWfilterusb.cat" />
+			</Component>
+
+			<Component Id="FWFilterUsb_sys_component" Guid="038E7ED1-C844-4BE7-ADF0-1594A0D5DA34">
+				<File Id="FWFilterUsb_sys" Name="FWFilterUsb.sys" Source="..\FWSetupBinaries\SignFolderx64\FWFilterUsb.sys" />
+			</Component>
+
+			<Component Id="FWFilterUsbInstall_component" Guid="63FD2DF3-3912-46D4-BE2C-B4F42485F1D4">
+				<File Id="FWFilterUsbInstall" Name="FWFilterUsbInstall.inf" Source="..\..\FWSetupInf\FWFilterUsbInstall.inf" />
+			</Component>
+
+			<Component Id="FWPnpService_component" Guid="99212CD1-A511-4964-91CC-405CC7ECC4BB">
+				<File Id="FWPnpService" Name="FWPnpService.exe" Source="..\FWSetupBinaries\x64\Release\FWPnpService.exe" />
+				<ServiceControl Id="StartStopService" Stop="both" Name="FWPnpService" Wait="yes" />
+			</Component>
+
+			<Component Id="FWSetupCustomAction_component" Guid="86CEC047-E292-46C1-9DA2-426C91E8B583">
+				<File Id="FWSetupCustomAction" Name="FWSetupCustomAction.exe" Source="..\FWSetupBinaries\x64\Release\FWSetupCustomAction.exe" />
+			</Component>
+
+			<Component Id="FWVirtualInputDevice_cat_component" Guid="19DADE08-C0F2-473A-BBEF-9417DC7FAA9B">
+				<File Id="FWVirtualInputDevice_cat" Name="FWVirtualInputDevice.cat" Source="..\FWSetupBinaries\SignFolderx64\FWVirtualInputDevice.cat" />
+			</Component>
+
+			<Component Id="FWVirtualInputDevice_inf_component" Guid="35FAD6A3-AB7D-4520-A4CF-CEBECA29D2BD">
+				<File Id="FWVirtualInputDevice_inf" Name="FWVirtualInputDevice.inf" Source="..\..\FWSetupInf\FWVirtualInputDevice.inf" />
+			</Component>
+
+			<Component Id="FWVirtualInputDevice_sys_component" Guid="851C9AB3-A3C4-425B-A9CC-EF14FB149917">
+				<File Id="FWVirtualInputDevice_sys" Name="FWVirtualInputDevice.sys" Source="..\FWSetupBinaries\SignFolderx64\FWVirtualInputDevice.sys" />
+			</Component>
+
+			<Component Id="RegistrySettingsCsp_component" Guid="DFF6839A-5ECB-4F62-92D3-1F8BC3A8A4EE">
+				<File Id="RegistrySettingsCsp" Name="RegistrySettingsCsp.inf" Source="..\..\FWSetupInf\RegistrySettingsCsp.inf" />
+			</Component>
+
+			<Component Id="RegistrySettingsCsugs_component" Guid="CDCF949F-BBEB-40AF-BF0E-353B1F4C6E3D">
+				<File Id="RegistrySettingsCsugs" Name="RegistrySettingsCsugs.inf" Source="..\..\FWSetupInf\RegistrySettingsCsugs.inf" />
+			</Component>
+
+			<Component Id="RegistrySettingsCsuhb_component" Guid="BA803C25-AEC7-4297-B48F-2E3AC3D37DBA">
+				<File Id="RegistrySettingsCsuhb" Name="RegistrySettingsCsuhb.inf" Source="..\..\FWSetupInf\RegistrySettingsCsuhb.inf" />
+			</Component>
+
+			<Component Id="RegistrySettingsFw_component" Guid="E6524C5B-8D04-4BA2-B5FE-E4510C9D4601">
+				<File Id="RegistrySettingsFw" Name="RegistrySettingsFw.inf" Source="..\..\FWSetupInf\RegistrySettingsFw.inf" />
+			</Component>
+
+			<Component Id="WdfCoinstaller01011_component" Guid="C6538CAA-C327-4EE0-A526-3DE0FC89842E">
+				<File Id="WdfCoinstaller01011" Name="WdfCoinstaller01011.dll" Source="..\FWSetupBinaries\SignFolderx64\WdfCoinstaller01011.dll" />
+			</Component>
+
+			<Component Id="mchpcdc_inf_component" Guid="D06C46CB-5238-452E-A021-D4ED40128037">
+				<File Id="mchpcdc_inf" Name="mchpcdc.inf" Source="..\FirmwareUpdaterBinaries\EBLDC\mchpcdc.inf" />
+			</Component>
+
+			<Component Id="mchpcdc_cat_component" Guid="70F1C51B-256F-4754-83D2-92312126CBDC">
+				<File Id="mchpcdc_cat" Name="mchpcdc.cat" Source="..\FirmwareUpdaterBinaries\EBLDC\mchpcdc.cat" />
+			</Component>
+
+		</ComponentGroup>
+		<ComponentGroup Id="ProductComponents_Metadata" Directory="INSTALLFOLDER_METADATA">
+			<Component Id="CSW_DeviceMetadata_component" Guid="59DC42C9-AA33-4DF3-A825-03EF5282B78B">
+				<File Id="CSW_DeviceMetadata" Name="d19419e6-648b-45a3-8e78-21b9e8e223be.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSW\d19419e6-648b-45a3-8e78-21b9e8e223be.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSW_V2_DeviceMetadata_component" Guid="72990E51-144F-470C-9C67-B382D4464719">
+				<File Id="CSW_V2_DeviceMetadata" Name="280168fe-3c95-4000-8c26-11985ab73d7f.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSW_V2\280168fe-3c95-4000-8c26-11985ab73d7f.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSW_V2_5_DeviceMetadata_component" Guid="DEDD51FC-AEB6-44FC-94CD-C2D80CA114BA">
+				<File Id="CSW_V2_5_DeviceMetadata" Name="b20187b3-1f50-47f2-b561-4475d4cc32ab.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSW_V2.5\b20187b3-1f50-47f2-b561-4475d4cc32ab.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSLE_DeviceMetadata_component" Guid="C589A2F1-31D2-4FAF-BF74-C6D6CD20284D">
+				<File Id="CSLE_DeviceMetadata" Name="5cecf291-7457-41c1-a7a1-f35bade2b838.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSLE\5cecf291-7457-41c1-a7a1-f35bade2b838.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSLE_PS4_DeviceMetadata_component" Guid="D434ADD7-338E-4809-B670-E151760CAE2B">
+				<File Id="CSLE_PS4_DeviceMetadata" Name="75b2d837-55fa-4bed-9675-4e5072f264a9.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSLE_PS4_X\75b2d837-55fa-4bed-9675-4e5072f264a9.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="PWX_DeviceMetadata_component" Guid="C62FCE1A-7167-4B5C-B6AB-CCAF3C963679">
+				<File Id="PWX_DeviceMetadata" Name="e63fd990-d108-4278-8178-b19a0261250b.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\PWX\e63fd990-d108-4278-8178-b19a0261250b.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="PDD1_DeviceMetadata_component" Guid="{87185AD1-0C4B-4582-9D2D-295356095140}">
+				<File Id="PDD1_DeviceMetadata" Name="983d3dba-8e77-4af1-9412-66fb6d05530a.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\PDD1\983d3dba-8e77-4af1-9412-66fb6d05530a.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="PDD2_DeviceMetadata_component" Guid="{00991CE1-D2C3-4D8F-9ACE-07F631EDCD15}">
+				<File Id="PDD2_DeviceMetadata" Name="668a2529-9cc7-43ad-b7cf-8071faec556a.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\PDD2\668a2529-9cc7-43ad-b7cf-8071faec556a.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="WB_0x0020_DeviceMetadata_component" Guid="{CC6D0377-EAD1-48F8-8E39-09CB23C967A4}">
+				<File Id="WB_0x0020_DeviceMetadata" Name="71185e40-f97c-42d9-9cf0-c10fe684160c.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\WB_0x0020\71185e40-f97c-42d9-9cf0-c10fe684160c.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSLEPV2_DeviceMetadata_component" Guid="{606AC7F6-5B10-444F-A19C-E625C4633D40}">
+				<File Id="CSLEPV2_DeviceMetadata" Name="be87ce80-8788-4996-ad63-f522ef9850e8.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSLEPV2\be87ce80-8788-4996-ad63-f522ef9850e8.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSLPLCK_DeviceMetadata_component" Guid="{2E8F40C1-91AB-4DCA-9A70-011842B3A4F6}">
+				<File Id="CSLPLCK_DeviceMetadata" Name="26749665-9866-4ad4-93b0-d59eac927c65.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSLPLCK\26749665-9866-4ad4-93b0-d59eac927c65.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSP_DeviceMetadata_component" Guid="DDAA0EE9-0DA3-422B-84F0-91879A5467B6">
+				<File Id="CSP_DeviceMetadata" Name="b01db869-5be6-49c7-989b-33a257f3b2a0.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSP\b01db869-5be6-49c7-989b-33a257f3b2a0.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSP_V3_DeviceMetadata_component" Guid="3CD0D120-1ECE-442B-880B-68FA2542C8A1">
+				<File Id="CSP_V3_DeviceMetadata" Name="03892ff9-ced5-4106-8719-000c6c34c422.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSP_V3\03892ff9-ced5-4106-8719-000c6c34c422.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSL_P_DeviceMetadata_component" Guid="C76F9A0B-9AB5-4CE9-B646-870AA07E8EB1">
+				<File Id="CSL_P_DeviceMetadata" Name="40f43749-24ba-45ad-b7d6-86c9be6e12c9.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSL_P\40F43749-24BA-45AD-B7D6-86C9BE6E12C9.devicemetadata-ms" />
+			</Component>
+
+			<Component Id="CSUSB_DeviceMetadata_component" Guid="96C9E13D-5F38-499A-84F5-4F0EB01F5C27">
+				<File Id="CSUSB_DeviceMetadata" Name="3bce5187-65f6-441d-881e-c58951be0156.devicemetadata-ms" Source="..\FWSetupRedistributables\metadata\CSUSB\3bce5187-65f6-441d-881e-c58951be0156.devicemetadata-ms" />
+			</Component>
+		</ComponentGroup>
+
+		<ComponentGroup Id="ProductComponents_UWP_IHV" Directory="INSTALLFOLDER_UWP_IHV">
+			<Component Id="PWX_RacingWheel_ihv_component" Guid="910DC30D-7EEB-40E5-BE6C-FDDB003DC226">
+				<File Id="PWX_RacingWheel_ihv" Name="Fanatec_PWX_0EB70197_RacingWheel_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_PWX_0EB70197_RacingWheel_ihv.reg" />
+			</Component>
+			<Component Id="PWX_UINavigation_ihv_component" Guid="8A492466-BBB9-4566-B219-B4AF4A07178C">
+				<File Id="PWX_UINavigation_ihv" Name="Fanatec_PWX_0EB70197_UINavigation_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_PWX_0EB70197_UINavigation_ihv.reg" />
+			</Component>
+
+			<Component Id="CSW_V1_RacingWheel_ihv_component" Guid="08F22C8D-1631-428F-ADD4-3641BB5EDB57">
+				<File Id="CSW_V1_RacingWheel_ihv" Name="Fanatec_CSW_V1_0EB7038E_RacingWheel_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSW_V1_0EB7038E_RacingWheel_ihv.reg" />
+			</Component>
+			<Component Id="CSW_V1_UINavigation_ihv_component" Guid="F18DDBDE-4AD8-4564-A110-DC0FF03B52A7">
+				<File Id="CSW_V1_UINavigation_ihv" Name="Fanatec_CSW_V1_0EB7038E_UINavigation_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSW_V1_0EB7038E_UINavigation_ihv.reg" />
+			</Component>
+
+			<Component Id="CSW_V2_5_RacingWheel_ihv_component" Guid="29AD60BC-56D7-4B6F-8778-936011384594">
+				<File Id="CSW_V2_5_RacingWheel_ihv" Name="Fanatec_CSW_V2_5_0EB70004_RacingWheel_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSW_V2_5_0EB70004_RacingWheel_ihv.reg" />
+			</Component>
+			<Component Id="CSW_V2_5_UINavigation_ihv_component" Guid="E9B6C1AA-75A1-4FE8-8DF6-7528F328B12B">
+				<File Id="CSW_V2_5_UINavigation_ihv" Name="Fanatec_CSW_V2_5_0EB70004_UINavigation_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSW_V2_5_0EB70004_UINavigation_ihv.reg" />
+			</Component>
+
+			<Component Id="CSL_RacingWheel_ihv_component" Guid="01FBB0E4-9CFB-4251-9131-C234924810F9">
+				<File Id="CSL_RacingWheel_ihv" Name="Fanatec_CSL_0EB70E03_RacingWheel_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSL_0EB70E03_RacingWheel_ihv.reg" />
+			</Component>
+			<Component Id="CSL_UINavigation_ihv_component" Guid="DB96C960-5E17-4293-B278-895FC4972DBD">
+				<File Id="CSL_UINavigation_ihv" Name="Fanatec_CSL_0EB70E03_UINavigation_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSL_0EB70E03_UINavigation_ihv.reg" />
+			</Component>
+
+			<Component Id="CSL_PS4_RacingWheel_ihv_component" Guid="37EEF1E7-D672-4300-816F-2976E908312A">
+				<File Id="CSL_PS4_RacingWheel_ihv" Name="Fanatec_CSL_PS4_0EB70005_RacingWheel_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSL_PS4_0EB70005_RacingWheel_ihv.reg" />
+			</Component>
+			<Component Id="CSL_PS4_UINavigation_ihv_component" Guid="98266321-6725-495C-9658-20078B6A6CE2">
+				<File Id="CSL_PS4_UINavigation_ihv" Name="Fanatec_CSL_PS4_0EB70005_UINavigation_ihv.reg" Source="..\FWSetupRedistributables\UWP_IHV\Fanatec_CSL_PS4_0EB70005_UINavigation_ihv.reg" />
+			</Component>
+		</ComponentGroup>
+
+		<ComponentGroup Id="ProductComponents_MS_Signed" Directory="INSTALLFOLDER_MS_SIGNED">
+			<Component Id="FWFilterUsbInstall_ms_component" Guid="0102E499-31DA-4524-B2AD-261154A8B68B">
+				<File Id="FWFilterUsbInstall_ms" Name="FWFilterUsbInstall.inf" Source="..\..\FWSetupInf\FWFilterUsbInstall.inf" />
+			</Component>
+
+			<Component Id="FWFilterUsb_sys_ms_component" Guid="076E0718-DF98-4A56-A0E7-9600ED3FF60A">
+				<File Id="FWFilterUsb_sys_ms" Name="FWFilterUsb.sys" Source="..\FWSetupBinaries\SignFolderx64_MS\FWFilterUsb.sys" />
+			</Component>
+
+			<Component Id="FWfilterusb_cat_ms_component" Guid="5DA3F3C7-A167-4C78-965A-11EEBDB4C8AF">
+				<File Id="FWfilterusb_cat_ms" Name="FWfilterusb.cat" Source="..\FWSetupBinaries\SignFolderx64_MS\FWfilterusb.cat" />
+			</Component>
+
+			<Component Id="FWVirtualInputDevice_inf_ms_component" Guid="913DFDFC-E237-4A87-B245-4572E8668FD7">
+				<File Id="FWVirtualInputDevice_inf_ms" Name="FWVirtualInputDevice.inf" Source="..\..\FWSetupInf\FWVirtualInputDevice.inf" />
+			</Component>
+
+			<Component Id="FWVirtualInputDevice_sys_ms_component" Guid="B0F213AE-D6FF-4CB4-B4D9-7F420B41BBA4">
+				<File Id="FWVirtualInputDevice_sys_ms" Name="FWVirtualInputDevice.sys" Source="..\FWSetupBinaries\SignFolderx64_MS\FWVirtualInputDevice.sys" />
+			</Component>
+
+			<Component Id="FWVirtualInputDevice_cat_ms_component" Guid="600188F8-3FFF-4C72-AE4E-2D8DF7D17294">
+				<File Id="FWVirtualInputDevice_cat_ms" Name="FWVirtualInputDevice.cat" Source="..\FWSetupBinaries\SignFolderx64_MS\FWVirtualInputDevice.cat" />
+			</Component>
+
+			<Component Id="WdfCoinstaller01011_ms_component" Guid="E9FD7C9F-65D1-4974-AF9F-15061E3CAB17">
+				<File Id="WdfCoinstaller01011_ms" Name="WdfCoinstaller01011.dll" Source="..\FWSetupBinaries\SignFolderx64_MS\WdfCoinstaller01011.dll" />
+			</Component>
+		</ComponentGroup>
+
+		<ComponentGroup Id="ProductComponents_Firmware" Directory="INSTALLFOLDER_FIRMWARE">
+			<Component Id="FanatecFirmwareManager_component" Guid="{CA612F14-9F3E-48E5-8AF2-441AC74F9965}">
+				<File Id="FanatecFirmwareManager" Name="FanatecFirmwareManager.exe" Source="..\FirmwareUpdaterBinaries\FanatecFirmwareManager.exe" />
+			</Component>
+
+			<Component Id="EndorFanatecSdk32_VS2019_dll_component" Guid="{CD58D400-B7A1-468C-9B93-E3ED3690312F}">
+				<File Id="EndorFanatecSdk32_VS2019" Name="EndorFanatecSdk32_VS2019.dll" Source="..\FirmwareUpdaterBinaries\EndorFanatecSdk32_VS2019.dll" />
+			</Component>
+
+			<Component Id="FWMngr_System.Web.Helpers.dll_component" Guid="{42E99378-8573-4D26-9D28-3EBA7D2CC2A0}">
+				<File Id="FWMngr_System.Web.Helpers.dll" Name="System.Web.Helpers.dll" Source="..\FirmwareUpdaterBinaries\System.Web.Helpers.dll" />
+			</Component>
+
+			<Component Id="versions_xml_component" Guid="{D0F0788C-F19B-492E-87E4-5C8ECF0B46E6}">
+				<File Id="versions_xml" Name="versions.xml" ReadOnly="yes" Source="..\FirmwareUpdaterBinaries\versions.xml" />
+			</Component>
+
+			<Component Id="changelog_xml_component" Guid="{CC4EBF79-B791-47B2-B53E-53F8D0D17E54}">
+				<File Id="changelog_xml" Name="changelog.xml" ReadOnly="yes" Source="..\FirmwareUpdaterBinaries\changelog.xml" />
+			</Component>
+
+			<!--Wheel Base Firmwares-->
+			<Component Id="WB_CSWV1_component" Guid="B350CB66-4B1E-4F82-8B68-ECD57C3C740C">
+				<File Id="WB_CSWV1" Name="7a715592-283b-4e07-8267-a2c2ad94a047.hex" Source="..\FirmwareUpdaterBinaries\WB_CSWV1.hex" />
+			</Component>
+
+			<Component Id="WB_CSWV2_component" Guid="031808F6-3C7B-47C2-AD0E-6484593B4DB0">
+				<File Id="WB_CSWV2" Name="2043a27e-3a35-4289-b640-8bc125383c20.hex" Source="..\FirmwareUpdaterBinaries\WB_CSWV2.hex" />
+			</Component>
+
+			<Component Id="WB_CSWV25_component" Guid="932149E3-AA8D-4C4F-816D-0B6E15D098D1">
+				<File Id="WB_CSWV25" Name="217379ec-6902-4834-a925-02c28140b434.hex" Source="..\FirmwareUpdaterBinaries\WB_CSWV25.hex" />
+			</Component>
+
+			<Component Id="WB_CSLE_component" Guid="FF9F0052-853C-4475-B71A-AEC185CAB5CC">
+				<File Id="WB_CSLE" Name="37572778-6508-4e70-b85a-f5337216cfe7.hex" Source="..\FirmwareUpdaterBinaries\WB_CSLE.hex" />
+			</Component>
+
+			<Component Id="WB_CSLEPS4_component" Guid="41D5D093-84D0-433B-BBA3-C6BEEB840680">
+				<File Id="WB_CSLEPS4" Name="41c37817-f479-4320-bbe5-234f2d4e2410.hex" Source="..\FirmwareUpdaterBinaries\WB_CSLEPS4.hex" />
+			</Component>
+
+			<Component Id="WB_CSLDD_component" Guid="{1CAC9697-E2B6-4421-8417-94E7C7EAA213}">
+				<File Id="WB_CSLDD" Name="f3ed6d89-59dc-48ab-aedb-aedc9c65532c.hex" Source="..\FirmwareUpdaterBinaries\WB_CSLDD.hex" />
+			</Component>
+
+			<!--Note: PDD1 and PDD2 has same WB firwmare-->
+			<Component Id="WB_PDD_component" Guid="{B1E94A85-B35E-4AA9-9B50-5C6A8AB94187}">
+				<File Id="WB_PDD" Name="fd80c1d8-7cfb-4496-9a5d-606da0df6d0e.hex" Source="..\FirmwareUpdaterBinaries\WB_PDD.hex" />
+			</Component>
+
+			<!--Motor Firmwares-->
+			<Component Id="EBLDC_hex_component" Guid="4C1175AD-59D5-4E0D-BCB3-B72551A7C443">
+				<File Id="EBLDC_hex" Name="9bbbcadf-5801-4f48-9581-1ad59c082f5f.hex" Source="..\FirmwareUpdaterBinaries\EBLDC.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD10_hex_component" Guid="{A4C18DCA-CE43-44EF-B489-D6803E854881}">
+				<File Id="EBLDC_DD10_hex" Name="e8fe8186-b6b5-49d2-a7e0-11b3f3bc814a.hex" Source="..\FirmwareUpdaterBinaries\EBLDC_DD10.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD20_hex_component" Guid="{54BF6264-1392-400A-9F72-5D0EA3D69C49}">
+				<File Id="EBLDC_DD20_hex" Name="ab2daa92-a4ca-418f-8b09-aff120b21a2a.hex" Source="..\FirmwareUpdaterBinaries\EBLDC_DD20.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DDCSL_hex_component" Guid="{9DDB324E-74E4-4F2B-B3CB-85662C8AE47B}">
+				<File Id="EBLDC_DDCSL_hex" Name="c93cfc1f-ea00-4582-8cc9-bfeb8cf1df71.hex" Source="..\FirmwareUpdaterBinaries\EBLDC_DDCSL.hex" />
+			</Component>
+
+			<!--Steering Wheel Firmwares-->
+			<Component Id="SW_CSLESWMCL_hex_component" Guid="{D7619327-AB2E-42EB-9CB8-866347C0B3B3}">
+				<File Id="SW_CSLESWMCL_hex" Name="3e280a2f-00ae-4c1b-8697-e00d7e3d6e5d.hex" Source="..\FirmwareUpdaterBinaries\SW_CSLESWMCL.hex" />
+			</Component>
+
+			<Component Id="SW_CSLESWMCLV2_hex_component" Guid="{3D6E9E5A-2255-4A9F-A30C-37DC1C75D40E}">
+				<File Id="SW_CSLESWMCLV2_hex" Name="2c5abde0-4819-48bd-a5ed-4e369c1a4d35.hex" Source="..\FirmwareUpdaterBinaries\SW_CSLESWMCLV2.hex" />
+			</Component>
+
+			<Component Id="SW_CSSWFORMV2_hex_component" Guid="{1522DEE7-535F-4832-829C-1FA5BF78F932}">
+				<File Id="SW_CSSWFORMV2_hex" Name="42e4c6c3-fa1e-44b3-b141-8cf832ebc1b5.hex" Source="..\FirmwareUpdaterBinaries\SW_CSSWFORMV2.hex" />
+			</Component>
+
+			<Component Id="SW_PHUB_hex_component" Guid="{91F2E7B7-0385-45F9-AA4A-EBAA760B6BB4}">
+				<File Id="SW_PHUB_hex" Name="7ea7b589-2e77-4377-8a98-cf5717270dfe.hex" Source="..\FirmwareUpdaterBinaries\SW_PHUB.hex" />
+			</Component>
+
+			<Component Id="SW_CSLSWUH_hex_component" Guid="{2EB2DCFA-0DDB-4297-A283-39ED264631A5}">
+				<File Id="SW_CSLSWUH_hex" Name="a1f202dc-9330-48c9-9ae8-a56676a707bc.hex" Source="..\FirmwareUpdaterBinaries\SW_CSLSWUH.hex" />
+			</Component>
+
+			<Component Id="SW_GTSWPRO_hex_component" Guid="{E572B62F-2B68-4F57-A465-D905E4F4A3A1}">
+				<File Id="SW_GTSWPRO_hex" Name="d851767f-360f-4935-b5b0-e8ac2c6f659c.hex" Source="..\FirmwareUpdaterBinaries\SW_GTSWPRO.hex" />
+			</Component>
+
+			<Component Id="SW_CSLESWWRC_hex_component" Guid="{BD99E737-882E-46D9-B52A-59B8B50D0537}">
+				<File Id="SW_CSLESWWRC_hex" Name="9bd08694-6ae1-4755-a02f-bb8982805269.hex" Source="..\FirmwareUpdaterBinaries\SW_CSLESWWRC.hex" />
+			</Component>
+
+			<Component Id="SW_CSSWBMWV2_hex_component" Guid="{6E5C0D12-0445-494B-B801-C8E1FEC58F1B}">
+				<File Id="SW_CSSWBMWV2_hex" Name="258541dd-6e14-4d31-91f7-72586abfc96f.hex" Source="..\FirmwareUpdaterBinaries\SW_CSSWBMWV2.hex" />
+			</Component>
+
+			<Component Id="SW_CSSWRS_hex_component" Guid="{22D4DE7E-E8BC-4913-9263-28F22297C236}">
+				<File Id="SW_CSSWRS_hex" Name="6439dc55-c518-4ca6-bd84-99f65731fe15.hex" Source="..\FirmwareUpdaterBinaries\SW_CSSWRS.hex" />
+			</Component>
+
+			<Component Id="SW_CSUHV2_hex_component" Guid="{A18B6EFC-5BD3-4F3D-B715-91999748E1A8}">
+				<File Id="SW_CSUHV2_hex" Name="231dbfb0-d5b2-4697-b2a2-96bca194eb1a.hex" Source="..\FirmwareUpdaterBinaries\SW_CSUHV2.hex" />
+			</Component>
+
+			<Component Id="SW_CSSWF1ESV2_hex_component" Guid="{E41C710C-75B1-4845-9A27-A4E6C48297AD}">
+				<File Id="SW_CSSWF1ESV2_hex" Name="ca07649f-bc35-40ea-9025-dc192e01307b.hex" Source="..\FirmwareUpdaterBinaries\SW_CSSWF1ESV2.hex" />
+			</Component>
+
+			<Component Id="PSWBENT_eff_component" Guid="{3628FD26-9621-4651-97BC-3039567DEC78}">
+				<File Id="PSWBENT_eff" Name="1920cab4-11ff-4609-8871-7d0866071ca7.eff" Source="..\FirmwareUpdaterBinaries\SW_PSWBENT.eff" />
+			</Component>
+
+			<Component Id="SW_PSWBMW_hex_component" Guid="{A69DDA1D-00AF-47A9-8F9A-71217D95A2F2}">
+				<File Id="SW_PSWBMW_hex" Name="0ec9a2e4-6c09-43b7-93e9-85fda61b2ed4.hex" Source="..\FirmwareUpdaterBinaries\SW_PSWBMW.hex" />
+			</Component>
+
+			<Component Id="SW_PBME_hex_component" Guid="{AC76158F-8D9F-463E-A668-14D339A697C8}">
+				<File Id="SW_PBME_hex" Name="1958A9F9-81AA-49AC-9870-B97C56F581AC.hex" Source="..\FirmwareUpdaterBinaries\SW_PBME.hex" />
+			</Component>
+
+			<!--Steering Wheel Firmwares EUFE-->
+			<Component Id="SW_M_CSSWFORMV2_eff_component" Guid="{E53D4126-1DC2-42D0-9675-13D4B819C86C}">
+				<File Id="SW_M_CSSWFORMV2_eff" Name="b01cc355-c407-411f-bfc7-2a7bb959da4f.eff" Source="..\FirmwareUpdaterBinaries\SW_M_CSSWFORMV2.eff" />
+			</Component>
+
+			<!--<Component Id="SW_M_KS_CSSWFORMV2_eff_component" Guid="{3941F095-D0DD-4D1E-B557-58E2294A7465}">
+            <File Id="SW_M_KS_CSSWFORMV2_eff" Name="1235a1cc-7a2a-42e6-bcfd-9ad1c7090bc0.eff" Source="..\FirmwareUpdaterBinaries\SW_M_KS_CSSWFORMV2.eff" />
+        </Component>-->
+
+			<Component Id="SW_M_GTSWPRO_eff_component" Guid="{2DEEC8EC-526C-44F2-9369-C7453DD090FF}">
+				<File Id="SW_M_GTSWPRO_eff" Name="7300b45d-34e6-49a2-8d6d-d5eee8ba4deb.eff" Source="..\FirmwareUpdaterBinaries\SW_M_GTSWPRO.eff" />
+			</Component>
+
+			<!--<Component Id="SW_M_KS_GTSWPRO_eff_component" Guid="{87C9BBEF-88F0-4089-9244-7D0B37EE8BD0}">
+            <File Id="SW_M_KS_GTSWPRO_eff" Name="2e1f45bf-099b-49cd-9002-3e8ffeb71497.eff" Source="..\FirmwareUpdaterBinaries\SW_M_KS_GTSWPRO.eff" />
+        </Component>-->
+
+			<Component Id="SW_M_PBMR_eff_component" Guid="{9AB5E3FE-8116-46CB-9831-EC624DC8EF1A}">
+				<File Id="SW_M_PBMR_eff" Name="bfa5d088-c959-4a8f-931e-8f7ebea1979d.eff" Source="..\FirmwareUpdaterBinaries\SW_M_PBMR.eff" />
+			</Component>
+
+			<!--<Component Id="SW_M_KS_PBMR_eff_component" Guid="{072A512C-A369-4984-B2DC-61AE43D60A2E}">
+            <File Id="SW_M_KS_PBMR_eff" Name="a35ff12f-1bf2-4ced-b064-f16b88edc89b.eff" Source="..\FirmwareUpdaterBinaries\SW_M_KS_PBMR.eff" />
+        </Component>-->
+
+			<Component Id="SW_M_GTSWX_eff_component" Guid="{A6B4F2B7-C147-4123-B58E-8C6369AE238E}">
+				<File Id="SW_M_GTSWX_eff" Name="b10f577e-9d19-4060-a844-a477ce79692a.eff" Source="..\FirmwareUpdaterBinaries\SW_M_GTSWX.eff" />
+			</Component>
+
+			<!--<Component Id="SW_M_KS_GTSWX_eff_component" Guid="{64E04C0B-ACAC-4755-AF62-F509B09CB0BA}">
+            <File Id="SW_M_KS_GTSWX_eff" Name="9cf47a35-1b11-4605-9df8-e81618318a24.eff" Source="..\FirmwareUpdaterBinaries\SW_M_KS_GTSWX.eff" />
+        </Component>-->
+
+			<Component Id="WB_CSDD_APP_eff_component" Guid="{954B1DF6-F263-4408-BA56-8C5809ECF6C9}">
+				<File Id="WB_CSDD_APP_eff" Name="0695fc74-d550-4728-8059-6b73327dfe8c.eff" Source="..\FirmwareUpdaterBinaries\WB_CSDD_APP.eff" />
+			</Component>
+
+			<!--<Component Id="WB_CSDD_KS_eff_component" Guid="{08D404F2-D37B-4DDF-B6C2-22C67C12145F}">
+            <File Id="WB_CSDD_KS" Name="1c2c90eb-8883-44ae-82b5-6e1fe16261de.eff" Source="..\FirmwareUpdaterBinaries\WB_CSDD_KS.eff" />
+        </Component>-->
+
+			<Component Id="WB_CSDD_QR_APP_eff_component" Guid="{8DCF97C5-554F-4E9C-B8AD-D8AF6F2C299E}">
+				<File Id="WB_CSDD_QR_APP" Name="ef522c97-3702-4bbc-9af3-9d0348508209.eff" Source="..\FirmwareUpdaterBinaries\QR_CSDD_APP.eff" />
+			</Component>
+
+			<!--<Component Id="WB_CSDD_QR_KS_eff_component" Guid="{33A77C96-B602-4447-8D35-E4BCD21080CC}">
+            <File Id="WB_CSDD_QR_KS" Name="03de4cd9-f684-4797-a09f-a4c06b33b678.eff" Source="..\FirmwareUpdaterBinaries\QR_CSDD_KS.eff" />
+        </Component>-->
+
+			<!--Pedals via USB Firmwares-->
+			<Component Id="PEDALS_CSPV3_hex_component" Guid="BD09512D-055C-4F03-ADE9-4E203643A720">
+				<File Id="PEDALS_CSPV3_hex" Name="773ef078-aad2-4695-aa57-de0ab8cba690.hex" Source="..\FirmwareUpdaterBinaries\PEDALS_CSPV3.hex" />
+			</Component>
+
+			<Component Id="PEDALS_CSLEPLC_hex_component" Guid="B460CBBD-7578-4FCD-BD40-681C22C7F535">
+				<File Id="PEDALS_CSLEPLC_hex" Name="f92ba1e6-d33b-49e4-b153-082bfd76d10b.hex" Source="..\FirmwareUpdaterBinaries\PEDALS_CSLEPLC.hex" />
+			</Component>
+
+			<Component Id="PEDALS_CSLPLCK_hex_component" Guid="{5CF12770-CC4E-4B5D-981E-CFE3084CB95B}">
+				<File Id="PEDALS_CSLPLCK_hex" Name="e0f8af1f-0099-4004-9498-2cabfa4577b1.hex" Source="..\FirmwareUpdaterBinaries\PEDALS_CSLPLCK.hex" />
+			</Component>
+
+			<Component Id="PEDALS_CSLEPV2_hex_component" Guid="{1B0BA379-8460-48C4-9B97-DE441A552011}">
+				<File Id="PEDALS_CSLEPV2_hex" Name="618d4dc0-2049-4dd4-9158-2e964574290d.hex" Source="..\FirmwareUpdaterBinaries\PEDALS_CSLEPV2.hex" />
+			</Component>
+
+			<!--USB Adapter Firmwares-->
+			<Component Id="USB_A_SHIFTER_hex_component" Guid="EF384825-EA3F-4F06-9120-DF410309013B">
+				<File Id="USB_A_SHIFTER_hex" Name="1a00272b-3af2-462a-a17b-7e6bf927d588.hex" Source="..\FirmwareUpdaterBinaries\USB_A_SHIFTER.hex" />
+			</Component>
+
+			<Component Id="USB_A_HANDBRAKE_hex_component" Guid="00B06231-AFA6-4E01-B480-71000B0D4292">
+				<File Id="USB_A_HANDBRAKE_hex" Name="281bac79-1bfd-48b2-9c5f-54e6d7d69c90.hex" Source="..\FirmwareUpdaterBinaries\USB_A_HANDBRAKE.hex" />
+			</Component>
+
+			<Component Id="USB_A_PEDALS_hex_component" Guid="DF1E3E23-70AA-4480-B6E4-AEF0E8100640">
+				<File Id="USB_A_PEDALS_hex" Name="df422077-2e04-4766-842e-655c73fe1dcb.hex" Source="..\FirmwareUpdaterBinaries\USB_A_PEDALS.hex" />
+			</Component>
+
+			<Component Id="USB_A_CSLPEDALS_hex_component" Guid="{8FA7AE49-883B-4292-945F-6B4A4490F22B}">
+				<File Id="USB_A_CSLPEDALS_hex" Name="5eb72be8-924c-4875-b32e-2edd0b4d51aa.hex" Source="..\FirmwareUpdaterBinaries\USB_A_CSLPEDALS.hex" />
+			</Component>
+
+			<!--Wireless Quick Release Firwmare-->
+			<Component Id="QR_PDD_hex_component" Guid="{9B877798-3459-47F2-AE74-148489F5CA33}">
+				<File Id="QR_PDD_hex" Name="688471aa-b11a-46ca-8ba0-8055cac3b52b.hex" Source="..\FirmwareUpdaterBinaries\QR_PDD.hex" />
+			</Component>
+
+			<Component Id="QR_CSL_DD_hex_component" Guid="{C1F5653B-FE4B-4DAF-B08B-C5C99E2EE188}">
+				<File Id="QR_CSL_DD_hex" Name="2a168019-9dc4-4dce-aa2e-4814b1081ea9.hex" Source="..\FirmwareUpdaterBinaries\QR_CSL_DD.hex" />
+			</Component>
+
+			<!--Firmware Updater applications and binaries-->
+			<Component Id="FwClubSportUsbUpdater_component" Guid="3E5C2D22-4043-412D-BE1E-AA78667943C4">
+				<File Id="FwClubSportUsbUpdater" Name="FwClubSportUsbUpdater.exe" Source="..\FirmwareUpdaterBinaries\FwClubSportUsbUpdater.exe" />
+			</Component>
+
+			<Component Id="FwClubSportBaseUpdater_component" Guid="85E5C6D1-C98C-4F1C-B4DD-9991A9C5ED00">
+				<File Id="FwClubSportBaseUpdater" Name="FwClubSportBaseUpdater.exe" Source="..\FirmwareUpdaterBinaries\FwClubSportBaseUpdater.exe" />
+			</Component>
+
+			<Component Id="FwPedalsUpdater_component" Guid="8464FF65-D396-45FF-8D61-CBC6F32E9C8A">
+				<File Id="FwPedalsUpdater" Name="FwPedalsUpdater.exe" Source="..\FirmwareUpdaterBinaries\FwPedalsUpdater.exe" />
+			</Component>
+
+			<Component Id="FwBaseUpdateWindow_component" Guid="7BEF421F-5E61-414D-A874-DE2FC05207B6">
+				<File Id="FwBaseUpdateWindow" Name="FwBaseUpdateWindow.exe" Source="..\FirmwareUpdaterBinaries\FwBaseUpdateWindow.exe" />
+			</Component>
+
+			<Component Id="FwUsbSteeringWheelUpdater_component" Guid="{80A70E1D-548A-472B-A8BE-7E49B1CE72E6}">
+				<File Id="FwUsbSteeringWheelUpdater" Name="FwUsbSteeringWheelUpdater.exe" Source="..\FirmwareUpdaterBinaries\FwUsbSteeringWheelUpdater.exe" />
+			</Component>
+
+			<Component Id="FwBaseMotorUpdater_component" Guid="3F9A4F5B-5DDA-4762-86EE-BBA8716E3642">
+				<File Id="FwBaseMotorUpdater" Name="FwBaseMotorUpdater.exe" Source="..\FirmwareUpdaterBinaries\FwBaseMotorUpdater.exe" />
+			</Component>
+
+			<Component Id="blfwkdll_component" Guid="38B4D51B-12FD-47C5-B135-A61215CC1369">
+				<File Id="blfwkdll" Name="blfwkdll.dll" Source="..\FirmwareUpdaterBinaries\EBLDC\blfwkdll.dll" />
+			</Component>
+
+			<Component Id="FirmwareUpdaterEufe_component" Guid="{6D8156B8-8DD8-466E-B02F-838A01E285BD}">
+				<File Id="FirmwareUpdaterEufe" Name="FirmwareUpdaterEufe.exe" Source="..\FirmwareUpdaterBinaries\x64\FirmwareUpdaterEufe64.exe" />
+			</Component>
+
+			<Component Id="FanatecCpl_EndorFanatecSdk64_VS2019.dll_component" Guid="{A73B5EDA-0307-49BE-B51F-F14E60CED8AE}">
+				<File Id="FanatecCpl_EndorFanatecSdk64_VS2019.dll" Name="EndorFanatecSdk64_VS2019.dll" Source="..\FirmwareUpdaterBinaries\x64\EndorFanatecSdk64_VS2019.dll"/>
+			</Component>
+
+			<Component Id="FanatecCpl_libprotobuf.dll_component" Guid="{3DD18834-4226-4E73-9A17-0BEDF2D94995}">
+				<File Id="FanatecCpl_libprotobuf.dll" Name="libprotobuf.dll" Source="..\FirmwareUpdaterBinaries\x64\libprotobuf.dll"/>
+			</Component>
+
+			<Component Id="Hex2BinConverter_component" Guid="{CA30A6E3-F365-44B9-B186-1AEFB8B0C30A}">
+				<File Id="Hex2BinConverter" Name="Hex2BinConverter.exe" Source="..\FirmwareUpdaterBinaries\Hex2BinConverter.exe" />
+			</Component>
+		</ComponentGroup>
+
+		<!--Old firmwares for downgrading only-->
+		<ComponentGroup Id="ProductComponents_Firmware_Previous_1" Directory="INSTALLFOLDER_FIRMWARE_PREV_1">
+			<Component Id="WB_PDD_prev_1_component" Guid="{A0D64D61-3312-42EC-A58D-89E7FC574C8A}">
+				<File Id="WB_PDD_prev_1" Name="fd80c1d8-7cfb-4496-9a5d-606da0df6d0e.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\1\WB_PDD.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD10_hex_prev_1_component" Guid="{AFB90E63-1FCC-43AA-A4D4-97223DA2AE5D}">
+				<File Id="EBLDC_DD10_hex_prev_1" Name="e8fe8186-b6b5-49d2-a7e0-11b3f3bc814a.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\1\EBLDC_DD10.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD20_hex_prev_1_component" Guid="{DF1EF16C-4EF0-4507-9029-D9C9921813EC}">
+				<File Id="EBLDC_DD20_hex_prev_1" Name="ab2daa92-a4ca-418f-8b09-aff120b21a2a.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\1\EBLDC_DD20.hex" />
+			</Component>
+		</ComponentGroup>
+
+		<ComponentGroup Id="ProductComponents_Firmware_Previous_2" Directory="INSTALLFOLDER_FIRMWARE_PREV_2">
+			<Component Id="WB_PDD_prev_2_component" Guid="{ADBAC9B0-C382-4BCF-8FC4-2D70AFA01E2A}">
+				<File Id="WB_PDD_prev_2" Name="fd80c1d8-7cfb-4496-9a5d-606da0df6d0e.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\2\WB_PDD.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD10_hex_prev_2_component" Guid="{35B87466-D4F4-4CD3-A5D3-7457A48EE73D}">
+				<File Id="EBLDC_DD10_hex_prev_2" Name="e8fe8186-b6b5-49d2-a7e0-11b3f3bc814a.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\2\EBLDC_DD10.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD20_hex_prev_2_component" Guid="{F0635346-B60A-4CEE-96C1-C679EBA9D921}">
+				<File Id="EBLDC_DD20_hex_prev_2" Name="ab2daa92-a4ca-418f-8b09-aff120b21a2a.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\2\EBLDC_DD20.hex" />
+			</Component>
+		</ComponentGroup>
+
+		<ComponentGroup Id="ProductComponents_Firmware_Previous_3" Directory="INSTALLFOLDER_FIRMWARE_PREV_3">
+			<Component Id="WB_PDD_prev_3_component" Guid="{E3F7DDB8-939F-44DB-8CE9-3814099EFE4E}">
+				<File Id="WB_PDD_prev_3" Name="fd80c1d8-7cfb-4496-9a5d-606da0df6d0e.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\3\WB_PDD.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD10_hex_prev_3_component" Guid="{FB787109-FBBC-4B14-9505-3EC0FB9F80CD}">
+				<File Id="EBLDC_DD10_hex_prev_3" Name="e8fe8186-b6b5-49d2-a7e0-11b3f3bc814a.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\3\EBLDC_DD10.hex" />
+			</Component>
+
+			<Component Id="EBLDC_DD20_hex_prev_3_component" Guid="{1EAB0F34-01A4-4454-8247-DCB70D273565}">
+				<File Id="EBLDC_DD20_hex_prev_3" Name="ab2daa92-a4ca-418f-8b09-aff120b21a2a.hex" Source="..\FirmwareUpdaterBinaries\Downgrade\3\EBLDC_DD20.hex" />
+			</Component>
+		</ComponentGroup>
+
+		<!--TBD: Reuse previous file-->
+		<ComponentGroup Id="ProductComponents_Firmware_Tool_1" Directory="INSTALLFOLDER_FIRMWARE_TOOL_1">
+			<Component Id="fw_CollectFanatecEvents.bat_component" Guid="{73BC5A10-8730-4D30-BB18-7629156F46A5}">
+				<File Id="fw_CollectFanatecEvents.bat" Name="CollectFanatecEvents.bat" Source="..\FWSetupBinaries\EventViewerScraper\CollectFanatecEvents.bat"/>
+			</Component>
+
+			<Component Id="fw_wevtutil.exe_component" Guid="{5060B626-5F47-4B5C-8186-A5CAC419D5A5}">
+				<File Id="fw_wevtutil.exe" Name="wevtutil.exe" Source="..\FWSetupBinaries\EventViewerScraper\wevtutil.exe"/>
+			</Component>
+		</ComponentGroup>
+
+	</Fragment>
+
+
+	<!--Set the type and customizations of the User Interface-->
+	<Fragment>
+		<FeatureGroup Id="UI" />
+		<UI>
+			<!--Set UI type-->
+			<UIRef Id="WixUI_InstallDir" />
+			<UIRef Id="WixUI_ErrorProgressText" />
+			<Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER_MAIN" />
+			<Property Id="MosquittoPath" Value="INSTALLFOLDER\Mosquitto"></Property>
+		</UI>
+
+		<WixVariable Id="WixUIDialogBmp" Value="..\FWSetupImages\Welcome.bmp" />
+		<WixVariable Id="WixUIBannerBmp" Value="..\FWSetupImages\FWBanner.bmp" />
+		<WixVariable Id="WixUIInfoIco" Value="..\FWSetupImages\information.ico"/>
+		<WixVariable Id="WixUILicenseRtf" Value="..\FWSetupImages\eula.rtf" />
+
+		<!--Set installer's Icon in Add/Remove Programs-->
+		<Icon Id="installerIcon.ico" SourceFile="..\FWSetupImages\Fanatec_bg_white.ico"/>
+		<Property Id="ARPPRODUCTICON" Value="installerIcon.ico" />
+	</Fragment>
+
+	<Fragment>
+		<DirectoryRef Id="INSTALLFOLDER">
+			<Component Id="HKCU_RunAtWindowsStartup" Guid="{2C342266-689E-4478-879B-BE6D3D25C8E6}">
+				<RegistryValue Root="HKCU" Action="write"
+							   Key="Software\Microsoft\Windows\CurrentVersion\Run"
+							   Name="Fanatec"
+							   Value="[INSTALLFOLDER_FANATEC_APP]Fanatec.exe"
+							   Type="string" />
+				<Condition>WIXUI_DLGCHECKBOXTRAYAPP=1</Condition>
+			</Component>
+		</DirectoryRef>
+	</Fragment>
+
+	<!--Set Custom Action declarations-->
+	<Fragment>
+		<FeatureGroup Id="CustomActionDeclarations" />
+
+		<!--Built-in Binary data used for CustomAction elements-->
+		<Binary Id="bin_setupExe64" SourceFile="..\FWSetupBinaries\x64\Release\FWSetupCustomAction.exe"/>
+
+		<!--On Pre-install (workaround solution)-->
+		<CustomAction Id="FW_CA_Action_1" BinaryKey="FW_CA_Binary" DllEntry="StopFanatecWheelService" Execute="immediate" Return="check"/>
+		<!--To stop service before upgrade-->
+		<CustomAction Id="FW_CA_Action_2" BinaryKey="FW_CA_Binary" DllEntry="CleanHKCURegistryOEM" Execute="immediate" Return="check"/>
+		<CustomAction Id="FW_CA_Action_3" BinaryKey="FW_CA_Binary" DllEntry="KillFanaleds" Execute="immediate" Return="check"/>
+		<CustomAction Id="FW_CA_Action_4a" BinaryKey="FW_CA_Binary" DllEntry="DeleteDesktopShortcut" Execute="immediate" Return="check"/>
+		<CustomAction Id="FW_CA_Action_4b" BinaryKey="FW_CA_Binary" DllEntry="DeleteDesktopShortcut" Execute="immediate" Return="check"/>
+		<Binary Id="FW_CA_Binary" SourceFile="..\FWSetupRedistributables\FwPackageCustomAction64.dll"/>
+
+		<!--On Installation-->
+		<CustomAction Id="FwInstallDriver" BinaryKey="bin_setupExe64" ExeCommand="-install,[INSTALLFOLDER_MAIN],TRUE" Execute="deferred" Return="check" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="FwInstallService" FileKey="FWPnpService" ExeCommand="-install" Execute="deferred" Return="check" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="ExecuteMQTT" BinaryKey="CustomActionLibraryDLL" DllEntry="ExecuteMosquittoInstaller" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="ModifyMosquittoConf" BinaryKey="CustomActionLibraryDLL" DllEntry="ModifyMosquittoConf" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="ReapirMQTT" BinaryKey="CustomActionLibraryDLL" DllEntry="ExecuteMosquittoInstaller" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<!--<CustomAction Id="ExecuteGameControlService" BinaryKey="CustomActionLibraryDLL" DllEntry="InstallGameControlService" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="ReapirGameControlService" BinaryKey="CustomActionLibraryDLL" DllEntry="InstallGameControlService" Execute="deferred" HideTarget="no" Impersonate="no" />-->
+		<CustomAction Id="ExecuteFanatecService" BinaryKey="CustomActionLibraryDLL" DllEntry="InstallFanatecService" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="ReapirFanatecService" BinaryKey="CustomActionLibraryDLL" DllEntry="InstallFanatecService" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="ExecuteEndorUI" BinaryKey="CustomActionLibraryDLL" DllEntry="InstallEndorUI" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="ReapirEndorUI" BinaryKey="CustomActionLibraryDLL" DllEntry="InstallEndorUI" Execute="deferred" HideTarget="no" Impersonate="no" />
+
+		<CustomAction Id="UninstallMQTT" BinaryKey="CustomActionLibraryDLL" DllEntry="UninstallMQTT" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<!--<CustomAction Id="UnInstallGameControlService" BinaryKey="CustomActionLibraryDLL" DllEntry="UnInstallGameControlService" Execute="deferred" HideTarget="no" Impersonate="no" />-->
+		<CustomAction Id="UninstallFanatecService" BinaryKey="CustomActionLibraryDLL" DllEntry="UnInstallFanatecService" Execute="deferred" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="UninstallEndorUI" BinaryKey="CustomActionLibraryDLL" DllEntry="UnInstallEndorUI" Execute="deferred" HideTarget="no" Impersonate="no" />
+
+		<Binary Id="CustomActionLibraryDLL" SourceFile="..\OneFanatecSetupCustomAction\bin\Release\OneFanatecSetupCustomAction.CA.dll" />
+		<!--On Repair-->
+		<CustomAction Id="FwRepairDriver" BinaryKey="bin_setupExe64" ExeCommand="-repair,[INSTALLFOLDER_MAIN],TRUE" Execute="deferred" Return="check" HideTarget="no" Impersonate="no" />
+		<CustomAction Id="FwReinstallService" FileKey="FWPnpService" ExeCommand="-install" Execute="deferred" Return="check" HideTarget="no" Impersonate="no" />
+
+		<!--On Rollback-->
+		<CustomAction Id="FwRollbackDriver" BinaryKey="bin_setupExe64" ExeCommand="-uninstall,[INSTALLFOLDER_MAIN],TRUE" Execute="rollback" Return="check" HideTarget="no" Impersonate="no" />
+
+		<!--On Uninstallation-->
+		<CustomAction Id="FwUninstallDriver" BinaryKey="bin_setupExe64" ExeCommand="-uninstall,[INSTALLFOLDER_MAIN],TRUE" Execute="deferred" Return="check" HideTarget="no" Impersonate="no" />
+
+		<!--After Installation-->
+		<!--<CustomAction Id="LaunchApplication" BinaryKey="bin_setupExe64" ExeCommand="-runShorcut,[DesktopFolder]" Impersonate="yes" />-->
+
+     <!--<CustomAction Id="SetCustomActionPropertyValues1" Property="ExecuteGameControlService" Value="InstallPath=[INSTALLFOLDER]" />-->
+    <CustomAction Id="SetCustomActionPropertyValues2" Property="ExecuteFanatecService" Value="InstallPath=[INSTALLFOLDER]" />
+    <CustomAction Id="SetCustomActionPropertyValues3" Property="ExecuteEndorUI" Value="InstallPath=[INSTALLFOLDER]" />
+
+    <!--<CustomAction Id="SetCustomActionPropertyValues4" Property="ReapirGameControlService" Value="InstallPath=[INSTALLFOLDER]" />-->
+    <CustomAction Id="SetCustomActionPropertyValues5" Property="ReapirFanatecService" Value="InstallPath=[INSTALLFOLDER]" />
+    <CustomAction Id="SetCustomActionPropertyValues6" Property="ReapirEndorUI" Value="InstallPath=[INSTALLFOLDER]" />
+
+    <CustomAction Id="SetCustomActionPropertyValues7" Property="UninstallEndorUI" Value="InstallPath=[INSTALLFOLDER]" />
+    <!--<CustomAction Id="SetCustomActionPropertyValues8" Property="UnInstallGameControlService" Value="InstallPath=[INSTALLFOLDER]" />-->
+    <CustomAction Id="SetCustomActionPropertyValues9" Property="UninstallFanatecService" Value="InstallPath=[INSTALLFOLDER]" />
+
+
+    <CustomActionRef Id="WixFailWhenDeferred" />
+	</Fragment>
+
+
+	<!--Set Custom Actions Sequence of Execution-->
+	<Fragment>
+		<FeatureGroup Id="CustomActionExecutions" />
+		<InstallExecuteSequence>
+
+			<!--On Installation-->
+			<!--<Custom Action="SetCustomActionPropertyValues1" Before="ExecuteGameControlService">NOT Installed</Custom>-->
+			<Custom Action="SetCustomActionPropertyValues2" Before="ExecuteFanatecService">NOT Installed</Custom>
+			<Custom Action="SetCustomActionPropertyValues3" Before="ExecuteEndorUI">NOT Installed</Custom>
+      
+      <Custom Action="FwInstallDriver" After="InstallFiles">NOT Installed</Custom>
+			<Custom Action="FwInstallService" After="FwInstallDriver">NOT Installed</Custom>
+			<Custom Action="ModifyMosquittoConf" After="FwInstallService">NOT Installed</Custom>
+			<!--<Custom Action="ExecuteGameControlService" After="ModifyMosquittoConf">NOT Installed</Custom>-->
+			<Custom Action="ExecuteFanatecService" After="ModifyMosquittoConf">NOT Installed</Custom>
+			<Custom Action="ExecuteEndorUI" After="ExecuteFanatecService">NOT Installed</Custom>
+
+			<!--On Repair-->
+      <!--<Custom Action="SetCustomActionPropertyValues4" Before="ReapirGameControlService">REINSTALL</Custom>-->
+      <Custom Action="SetCustomActionPropertyValues5" Before="ReapirFanatecService">REINSTALL</Custom>
+      <Custom Action="SetCustomActionPropertyValues6" Before="ReapirEndorUI">REINSTALL</Custom>
+
+      <Custom Action="FwRepairDriver" After="InstallFiles">REINSTALL</Custom>
+			<Custom Action="FwReinstallService" After="FwRepairDriver">REINSTALL</Custom>
+			<!--<Custom Action="ReapirGameControlService" After="FwReinstallService">REINSTALL</Custom>-->
+			<Custom Action="ReapirFanatecService" After="FwReinstallService">REINSTALL</Custom>
+			<Custom Action="ReapirEndorUI" After="ReapirFanatecService">REINSTALL</Custom>
+
+			<!--On Uninstallation-->
+      <Custom Action="SetCustomActionPropertyValues7" Before="UninstallEndorUI">Installed OR UPGRADINGPRODUCTCODE</Custom>
+      <!--<Custom Action="SetCustomActionPropertyValues8" Before="UnInstallGameControlService">Installed OR UPGRADINGPRODUCTCODE</Custom>-->
+      <Custom Action="SetCustomActionPropertyValues9" Before="UninstallFanatecService">Installed OR UPGRADINGPRODUCTCODE</Custom>
+
+      <Custom Action="UninstallEndorUI" Before="RemoveFiles">Installed OR UPGRADINGPRODUCTCODE</Custom>
+			<!--<Custom Action="UnInstallGameControlService" After="UninstallEndorUI">Installed OR UPGRADINGPRODUCTCODE</Custom>-->
+			<Custom Action="UninstallFanatecService" After="UninstallEndorUI">Installed OR UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="UninstallMQTT" After="UninstallFanatecService">Installed OR UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="FwUninstallDriver" After="UninstallMQTT">Installed OR UPGRADINGPRODUCTCODE</Custom>
+
+			<!--On Rollback for failed installations-->
+			<Custom Action="FwRollbackDriver" After="InstallFiles">NOT Installed</Custom>
+
+			<ScheduleReboot After="InstallFinalize">NOT Installed or REINSTALL</ScheduleReboot>
+
+		</InstallExecuteSequence>
+
+	</Fragment>
+
+</Wix>
