@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <!--Remove text displayed on the banner-->
+  <String Id="LicenseAgreementDlgTitle"></String>
+  <String Id="LicenseAgreementDlgDescription"></String>
+  <String Id="InstallDirDlgTitle"></String>
+  <String Id="InstallDirDlgDescription"></String>
+  <String Id="VerifyReadyDlgInstallTitle"></String>
+  <String Id="VerifyReadyDlgRemoveTitle"></String>
+  <String Id="VerifyReadyDlgRepairTitle"></String>
+  <String Id="ProgressDlgTitleInstalling"></String>
+  <String Id="ProgressDlgTitleChanging"></String>
+  <String Id="ProgressDlgTitleRemoving"></String>
+  <String Id="ProgressDlgTitleRepairing"></String>
+  <String Id="ProgressDlgTitleUpdating"></String>
+  <String Id="MaintenanceTypeDlgTitle"></String>
+  <String Id="MaintenanceTypeDlgDescription"></String>
+  <String Id="BrowseDlgTitle"></String>
+  <String Id="BrowseDlgDescription"></String>
+  <String Id="FilesInUseTitle"></String>
+  <String Id="FilesInUseDescription"></String>
+  <String Id="MsiRMFilesInUseDescription"></String>
+
+  <String Id="ErrorTrayAppBug">Due to a FanatecApp issue in Driver V451,&#xD;&#xA;1. Please temporarily disconnect or power off the Wheel Base.&#xD;&#xA;2. Manually uninstall Driver Package V451 before installing latest Driver.</String>
+</WixLocalization>
