@@ -1,0 +1,426 @@
+using IWshRuntimeLibrary;
+using Microsoft.Deployment.WindowsInstaller;
+using Microsoft.Win32;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Threading;
+using static System.Collections.Specialized.BitVector32;
+
+namespace OneFanatecSetupCustomAction
+{
+    public static class CustomActions
+    {
+        //[CustomAction]
+        //public static ActionResult ExecuteMosquittoInstaller(Session session)
+        //{
+        //    try
+        //    {
+        //        var installationPath = $@"{Settings.programFilesPath}\mosquitto";
+        //        //MessageBox.Show(installationPath);
+        //        var installerArgument = $@"/S /D={installationPath}";
+        //        var mosquittoInstallerPath = $@"{installationPath}\mosquitto-2.0.18-install-windows-x64.exe";
+        //        SetupHelpers.ExecuteEXE(mosquittoInstallerPath, installerArgument);
+        //        var mosquittoService = "mosquitto";
+        //        installerArgument = $"start {mosquittoService} force";
+        //        SetupHelpers.ExecuteEXE("sc.exe", installerArgument);
+        //        return ActionResult.Success;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        session.Log($"ExecuteMosquittoInstaller: Error executing mosquitto-2.0.18-install-windows-x64.exe: {ex.Message}");
+        //        //RollBackInstallation(session);
+        //        return ActionResult.Failure;
+        //    }
+        //}
+
+        [CustomAction]
+        public static ActionResult ModifyMosquittoConf(Session session)
+        {
+            try
+            {
+                string mosquittoConfPath = Path.Combine($@"{Settings.programFilesPath}\mosquitto", "mosquitto.conf");
+                string mosquittoConfBackupPath = Path.Combine($@"{Settings.tempPath}", "mosquitto.conf");
+                string mosquittoPwdFilePath = Path.Combine($@"{Settings.programFilesPath}\mosquitto", "pwfile.example");
+
+                if (System.IO.File.Exists(mosquittoConfPath))
+                {
+                    System.IO.File.Copy(mosquittoConfPath, mosquittoConfBackupPath, true);
+                    System.IO.File.AppendAllLines(mosquittoConfBackupPath, new[] { "listener 1883 0.0.0.0", "allow_anonymous false", "password_file " + mosquittoPwdFilePath });
+                    SetupHelpers.ExecuteEXE("cmd.exe", $"/c copy \"{mosquittoConfBackupPath}\" \"{mosquittoConfPath}\"");
+                }
+
+                if (System.IO.File.Exists(mosquittoConfBackupPath))
+                    System.IO.File.Delete(mosquittoConfBackupPath);
+
+                var mosquittoService = "mosquitto";
+                var installerArgument = $"start {mosquittoService} force";
+                SetupHelpers.ExecuteEXE("sc.exe", installerArgument);
+
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log($"ModifyMosquittoConf: Failed to modify mosquitto.conf: {ex.Message}");
+                return ActionResult.Failure;
+            }
+        }
+
+        [CustomAction]
+        public static ActionResult InstallFanatecService(Session session)
+        {
+            try
+            {
+
+                string targetPath = session.CustomActionData["InstallPath"];
+                string zipFilePath = Path.Combine($@"{targetPath}", "FanatecService", "onefanatec.zip");
+                string targetDirectory = Path.Combine($@"{targetPath}", "FanatecService", "Service");
+
+                if (Directory.Exists(targetDirectory))
+                {
+                    Directory.Delete(targetDirectory, true);
+                }
+                ZipFile.ExtractToDirectory(zipFilePath, targetDirectory);
+
+                string exeFilePath = Path.Combine($@"{targetDirectory}", "FanatecService.exe");
+                bool isExists = false;
+                if (System.IO.File.Exists(exeFilePath))
+                {
+                    isExists = true;
+                }
+                else if (System.IO.File.Exists(Path.Combine($@"{targetDirectory}", "onefanatec", "FanatecService.exe")))
+                {
+                    isExists = true;
+                    exeFilePath = Path.Combine($@"{targetDirectory}", "onefanatec", "FanatecService.exe");
+                }
+
+                if (isExists)
+                {
+                    SetupHelpers.StopProcess("FanatecService");
+                    SetupHelpers.WaitProcessTerminate("FanatecService", 60);
+                    AddStartupEntry(session, exeFilePath);
+                    return ActionResult.Success;
+                }
+                else
+                {
+                    SetupHelpers.StopProcess("FanatecService");
+                    RemoveStartupEntry(session);
+                    Console.WriteLine("EXE file not found: " + exeFilePath);
+                    return ActionResult.Failure;
+                }
+            }
+            catch (Exception ex)
+            {
+                SetupHelpers.StopProcess("FanatecService");
+                session.Log("InstallFanatecService: Error: " + ex.Message);
+                RemoveStartupEntry(session);
+                //RollBackInstallation(session);
+                return ActionResult.Failure;
+            }
+        }
+
+        //[CustomAction]
+        //public static ActionResult InstallGameControlService(Session session)
+        //{
+        //    try
+        //    {
+        //        string targetPath = session.CustomActionData["InstallPath"];
+        //        string zipFilePath = Path.Combine($@"{targetPath}", "GameControlService", "gamecontrolservice.zip");
+        //        string targetDirectory = Path.Combine($@"{targetPath}", "GameControlService", "Service");
+
+        //        if (Directory.Exists(targetDirectory))
+        //        {
+        //            Directory.Delete(targetDirectory, true);
+        //        }
+        //        ZipFile.ExtractToDirectory(zipFilePath, targetDirectory);
+
+        //        string exeFilePath = Path.Combine($@"{targetDirectory}", "GameControlService.exe");
+
+        //        bool isExists = false;
+        //        if (System.IO.File.Exists(exeFilePath))
+        //        {
+        //            isExists = true;
+        //        }
+        //        else if (System.IO.File.Exists(Path.Combine($@"{targetDirectory}", "gamecontrolservice", "GameControlService.exe")))
+        //        {
+        //            isExists = true;
+        //            exeFilePath = Path.Combine($@"{targetDirectory}", "gamecontrolservice", "GameControlService.exe");
+        //        }
+
+        //        if (isExists)
+        //        {
+        //            SetupHelpers.ExecuteEXE(exeFilePath, "uninstall");
+        //            // Wait till uninstallation is through, EXE is GameControlService and DLLs are unlocked
+        //            SetupHelpers.WaitProcessTerminate("GameControlService", 60);
+
+        //            SetupHelpers.ExecuteEXE(exeFilePath, "install");
+        //            string serviceName = "GameControlService";
+        //            SetupHelpers.ExecuteEXE("sc.exe", $"start {serviceName}");
+        //            return ActionResult.Success;
+        //        }
+        //        else
+        //        {
+        //            Console.WriteLine("EXE file not found: " + exeFilePath);
+        //            return ActionResult.Failure;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        session.Log("InstallGameControlService: Error: " + ex.Message);
+        //        //RollBackInstallation(session);
+        //        return ActionResult.Failure;
+        //    }
+        //}
+
+        [CustomAction]
+        public static ActionResult InstallEndorUI(Session session)
+        {
+            try
+            {
+                string targetPath = session.CustomActionData["InstallPath"];
+                string zipFilePath = Path.Combine($@"{targetPath}", "FanatecUI", "EndorUI.zip");
+                string targetDirectory = Path.Combine($@"{targetPath}", "FanatecUI", "UI");
+
+                session.Log("zipFilePath: " + zipFilePath);
+                session.Log("targetDirectory: " + targetDirectory);
+
+                if (Directory.Exists(targetDirectory))
+                {
+                    Directory.Delete(targetDirectory, true);
+                }
+
+                ZipFile.ExtractToDirectory(zipFilePath, targetDirectory);
+
+                string exeFilePath = Path.Combine($@"{targetDirectory}", "Fanatec.exe");
+
+                session.Log("exeFilePath: " + exeFilePath);
+                var wshShell = new WshShell();
+                var desktopShortcut = (IWshShortcut)wshShell.CreateShortcut(Path.Combine($@"{Settings.desktopPath}",
+                                                                                         "Fanatec.lnk"));
+                desktopShortcut.TargetPath = exeFilePath;
+
+                session.Log("desktopShortcut: " + Path.Combine($@"{Settings.desktopPath}", "Fanatec.lnk"));
+
+                desktopShortcut.Save();
+
+                System.IO.File.Copy(Path.Combine($@"{Settings.desktopPath}", "Fanatec.lnk"),
+                                    Path.Combine($@"{Settings.programsPath}", "Fanatec.lnk"),
+                                    true);
+
+                session.Log("CopyPath: " + Path.Combine($@"{Settings.programsPath}", "Fanatec.lnk"));
+
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log("InstallEndorUI: Error: " + ex.Message);
+                //RollBackInstallation(session);
+                return ActionResult.Failure;
+            }
+        }
+
+        [CustomAction]
+        public static ActionResult UninstallMQTT(Session session)
+        {
+            try
+            {
+                SetupHelpers.ExecuteEXE("sc.exe", "stop mosquitto");
+                Thread.Sleep(3000);
+                SetupHelpers.ExecuteEXE("sc.exe", "delete mosquitto force");
+                Thread.Sleep(3000);
+
+                string targetDirectory = Path.Combine($@"{Settings.programFilesPath}", "mosquitto");
+                var installationPath = Path.Combine($@"{targetDirectory}", "Uninstall.exe");
+                if (System.IO.File.Exists(installationPath))
+                {
+                    SetupHelpers.ExecuteEXE(installationPath, "/S");
+                }
+
+                SetupHelpers.WaitProcessTerminate("mosquitto", 60);
+
+                if (Directory.Exists(targetDirectory))
+                    Directory.Delete(targetDirectory, true);
+
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log("UninstallMQTT: Error: " + ex.Message);
+                return ActionResult.Failure;
+            }
+        }
+
+        [CustomAction]
+        public static ActionResult UnInstallFanatecService(Session session)
+        {
+            try
+            {
+                string targetPath = session.CustomActionData["InstallPath"];
+                string targetDirectory = Path.Combine($@"{targetPath}", "FanatecService", "Service");
+                string exeFilePath = Path.Combine($@"{targetDirectory}", "FanatecService.exe");
+                string trackerPath = Path.Combine($@"{Settings.publicFolderPath}", "Installer");
+
+                if (System.IO.File.Exists(exeFilePath))
+                {
+                    //SetupHelpers.ExecuteEXE(exeFilePath, "uninstall");
+                    //// Wait till uninstallation is through, EXE is unloaded and DLLs are unlocked
+                    SetupHelpers.StopProcess("FanatecService");
+                    SetupHelpers.WaitProcessTerminate("FanatecService", 60);
+                    RemoveStartupEntry(session);
+
+                }
+
+                if (Directory.Exists(targetDirectory))
+                    Directory.Delete(targetDirectory, true);
+                try
+                {
+                    session.Log("Tracker Path: " + trackerPath);
+                    // Find all .json files in the directory
+                    var jsonFiles = Directory.GetFiles(trackerPath, "*.json");
+
+                    foreach (var file in jsonFiles)
+                    {
+                        session.Log("Tracker File : " + file);
+                        try
+                        {
+                            System.IO.File.Delete(file); // Attempt to delete each .json file
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+                catch
+                {
+                }
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log("UnInstallFanatecService: Error: " + ex.Message);
+                return ActionResult.Failure;
+            }
+        }
+
+        //[CustomAction]
+        //public static ActionResult UnInstallGameControlService(Session session)
+        //{
+        //    try
+        //    {
+        //        string targetPath = session.CustomActionData["InstallPath"];
+        //        string targetDirectory = Path.Combine($@"{targetPath}", "GameControlService", "Service");
+        //        string exeFilePath = Path.Combine($@"{targetDirectory}", "GameControlService.exe");
+
+        //        if (System.IO.File.Exists(exeFilePath))
+        //        {
+        //            SetupHelpers.ExecuteEXE(exeFilePath, "uninstall");
+        //            // Wait till uninstallation is through, EXE is unloaded and DLLs are unlocked
+        //            SetupHelpers.WaitProcessTerminate("GameControlService", 60);
+        //        }
+
+        //        if (Directory.Exists(targetDirectory))
+        //            Directory.Delete(targetDirectory, true);
+
+        //        return ActionResult.Success;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        session.Log("UnInstallGameControlService: Error: " + ex.Message);
+        //        return ActionResult.Failure;
+        //    }
+        //}
+
+        [CustomAction]
+        public static ActionResult UnInstallEndorUI(Session session)
+        {
+            try
+            {
+                CloseUIIfOpen();
+                string targetPath = session.CustomActionData["InstallPath"];
+                string targetDirectory = Path.Combine($@"{targetPath}", "FanatecUI", "UI");
+                string desktopShortcut = Path.Combine($@"{Settings.desktopPath}", "Fanatec.lnk");
+
+                if (System.IO.File.Exists(desktopShortcut))
+                    System.IO.File.Delete(desktopShortcut);
+
+                string programShortcut = Path.Combine($@"{Settings.programsPath}", "Fanatec.lnk");
+
+                if (System.IO.File.Exists(programShortcut))
+                    System.IO.File.Delete(programShortcut);
+
+                if (Directory.Exists(targetDirectory))
+                    Directory.Delete(targetDirectory, true);
+
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log("UnInstallEndorUI: Error: " + ex.Message);
+                return ActionResult.Failure;
+            }
+        }
+
+        private static void CloseUIIfOpen()
+        {
+            string processName = "Fanatec";
+            Process[] processes = Process.GetProcessesByName(processName);
+            if (processes.Length > 0)
+            {
+                foreach (Process process in processes)
+                {
+
+                    process.Kill();
+                    process.WaitForExit(); // Wait for the process to exit
+                }
+            }
+        }
+
+        public static void RollBackInstallation(Session session)
+        {
+            UnInstallEndorUI(session);
+            UnInstallFanatecService(session);
+            //UnInstallGameControlService(session);
+            UninstallMQTT(session);
+        }
+
+        public static void AddStartupEntry(Session session, string exeFilePath)
+        {
+            try
+            {
+                session.Log("Inside AddStartupEntry");
+                using (RegistryKey key = Registry.LocalMachine.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+                {
+                    if (key != null)
+                    {
+                        string exePath = exeFilePath;
+                        key.SetValue("FanatecService", $"{exePath}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                session.Log("Failed AddStartupEntry");
+            }
+        }
+
+        public static void RemoveStartupEntry(Session session)
+        {
+            try
+            {
+                session.Log("Inside RemoveStartupEntry");
+                using (RegistryKey key = Registry.LocalMachine.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+                {
+                    if (key != null)
+                    {
+                        key.DeleteValue("FanatecService", false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                session.Log("Failed RemoveStartupEntry");
+            }
+        }
+    }
+}
